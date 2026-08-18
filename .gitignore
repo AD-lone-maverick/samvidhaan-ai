@@ -1,0 +1,25 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+.env.local
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+
+# Python
+*.egg-info/
+
+# Vector database
+chroma_db/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
