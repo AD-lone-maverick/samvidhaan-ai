@@ -15,7 +15,7 @@ frontend/node_modules/
 *.egg-info/
 
 # Vector database
-chroma_db/
+data/vector_db/
 
 # Jupyter
 .ipynb_checkpoints/

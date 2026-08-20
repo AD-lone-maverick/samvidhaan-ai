@@ -145,21 +145,47 @@ def chunk_article(article):
         return chunks
 
     # Article contains numbered clauses.
+    # Article contains numbered clauses.
+
+    clause_counts = {}
+
     for clause in clauses:
 
         clause_number = clause["clause"]
 
-        chunks.append({
-            "chunk_id": (
+        # Track repeated clause numbers within
+        # the same article.
+        clause_counts[clause_number] = (
+            clause_counts.get(clause_number, 0) + 1
+        )
+
+        occurrence = clause_counts[clause_number]
+
+        # First occurrence keeps the normal ID.
+        if occurrence == 1:
+
+            chunk_id = (
                 f"article_{article_number}"
                 f"_clause_{clause_number}"
-            ),
+            )
+
+        # Repeated occurrences get a unique suffix.
+        else:
+
+            chunk_id = (
+                f"article_{article_number}"
+                f"_clause_{clause_number}"
+                f"_part_{occurrence}"
+            )
+
+        chunks.append({
+            "chunk_id": chunk_id,
             "article_number": article_number,
             "article_title": article["article_title"],
             "part": article["part"],
             "part_title": article["part_title"],
             "status": article["status"],
-            "clause": clause_number, 
+            "clause": clause_number,
             "text": build_chunk_text(
                 article,
                 clause["text"]
@@ -186,7 +212,38 @@ def main():
         article_chunks = chunk_article(article)
 
         all_chunks.extend(article_chunks)
+    # ========================================================
+    # VALIDATE UNIQUE CHUNK IDS
+    # ========================================================
 
+    chunk_ids = [
+        chunk["chunk_id"]
+        for chunk in all_chunks
+    ]
+
+    duplicate_ids = {
+        chunk_id
+        for chunk_id in chunk_ids
+        if chunk_ids.count(chunk_id) > 1
+    }
+
+    print(
+        f"Unique chunk IDs: {len(set(chunk_ids))}"
+    )
+
+    print(
+        f"Duplicate chunk IDs: {len(duplicate_ids)}"
+    )
+
+    if duplicate_ids:
+
+        print(
+            "Duplicates found:"
+        )
+
+        print(
+            list(duplicate_ids)[:20]
+        )
     output = {
         "source": dataset["source"],
         "version": dataset["version"],
