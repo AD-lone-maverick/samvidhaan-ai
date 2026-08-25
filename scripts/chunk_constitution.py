@@ -57,7 +57,7 @@ def remove_article_heading(text, article_number):
     return cleaned.strip()
 
 CLAUSE_PATTERN = re.compile(
-    r"(?m)^\s*[*]*\((\d+)\)\s*"
+    r"(?m)^\s*(?:\d+\[)?[*]*\((\d+)\)\s*"
 )
 
 def split_into_clauses(text):
@@ -109,6 +109,62 @@ def build_chunk_text(article, clause_text=None):
     ).strip()
 
 
+def clean_article_body(text):
+
+    # --------------------------------------------------------
+    # Remove page headers
+    # --------------------------------------------------------
+
+    text = re.sub(
+        r"(?im)^.*THE CONSTITUTION OF INDIA.*$",
+        "",
+        text
+    )
+
+    # --------------------------------------------------------
+    # Remove standalone page numbers
+    # --------------------------------------------------------
+
+    text = re.sub(
+        r"(?m)^\s*\d+\s*$",
+        "",
+        text
+    )
+
+    # --------------------------------------------------------
+    # Remove page section headers such as:
+    # (Part XX.—Amendment of the Constitution)
+    # --------------------------------------------------------
+
+    text = re.sub(
+        r"(?im)^\s*\(Part\s+[IVXLCDM]+.*?\)\s*$",
+        "",
+        text
+    )
+
+    # --------------------------------------------------------
+    # Remove next PART heading and everything after it
+    # --------------------------------------------------------
+
+    text = re.split(
+        r"(?im)^\s*PART\s+[IVXLCDM]+\s*$",
+        text,
+        maxsplit=1
+    )[0]
+
+    # --------------------------------------------------------
+    # Normalize blank lines
+    # --------------------------------------------------------
+
+    text = re.sub(
+        r"\n{3,}",
+        "\n\n",
+        text
+    )
+
+    return text.strip()
+
+
 def chunk_article(article):
 
     article_number = article["article_number"]
@@ -118,11 +174,15 @@ def chunk_article(article):
         article_number
     )
 
+    body = clean_article_body(
+        body
+    )
+
 
     clauses = split_into_clauses(
         body
     )
-
+    
     chunks = []
 
     # No numbered clauses:

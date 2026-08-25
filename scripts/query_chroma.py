@@ -121,6 +121,65 @@ def expand_query(query):
             break
 
     return expanded_query
+
+
+def get_complete_article(article_number):
+
+    results = collection.get(
+        where={
+            "article_number": article_number
+        },
+        include=[
+            "documents",
+            "metadatas"
+        ]
+    )
+
+    documents = results["documents"]
+    metadatas = results["metadatas"]
+
+    print(
+        f"\nChunks found for Article {article_number}: "
+        f"{len(documents)}"
+    )
+    
+    for metadata in metadatas:
+    
+        print(
+            f"Clause found: {metadata['clause']}"
+        )
+    combined = list(
+        zip(
+            documents,
+            metadatas
+        )
+    )
+
+    combined.sort(
+        key=lambda item: (
+            int(item[1]["clause"])
+            if item[1]["clause"]
+            else 0
+        )
+    )
+
+    documents = [
+        item[0]
+        for item in combined
+    ]
+
+    metadatas = [
+        item[1]
+        for item in combined
+    ]
+
+    return {
+        "documents": [documents],
+        "metadatas": [metadatas],
+        "distances": [
+            [0.0] * len(documents)
+        ]
+    }
 # ============================================================
 # SEARCH FUNCTION
 # ============================================================
@@ -148,57 +207,9 @@ def search_constitution(
             "Retrieving complete Article..."
         )
 
-        results = collection.get(
-            where={
-                "article_number": article_number
-            },
-            include=[
-                "documents",
-                "metadatas"
-            ]
+        return get_complete_article(
+            article_number
         )
-
-        documents = results["documents"]
-        metadatas = results["metadatas"]
-
-        # --------------------------------------------------------
-        # Sort clauses in correct constitutional order
-        # --------------------------------------------------------
-
-        combined = list(
-            zip(
-                documents,
-                metadatas
-            )
-        )
-
-        combined.sort(
-            key=lambda item: (
-                int(item[1]["clause"])
-                if item[1]["clause"]
-                else 0
-            )
-        )
-
-        documents = [
-            item[0]
-            for item in combined
-        ]
-
-        metadatas = [
-            item[1]
-            for item in combined
-        ]
-
-        # Create query-like result structure so that
-        # display_results() continues to work.
-        return {
-            "documents": [documents],
-            "metadatas": [metadatas],
-            "distances": [
-                [0.0] * len(documents)
-            ]
-        }
 
     # ============================================================
     # NORMAL SEMANTIC SEARCH
@@ -208,7 +219,9 @@ def search_constitution(
         query
     )
 
-    print("\nCreating query embedding...")
+    print(
+        "\nCreating query embedding..."
+    )
 
     query_embedding = model.encode(
         search_query,
@@ -227,8 +240,69 @@ def search_constitution(
         ]
     )
 
+    # ============================================================
+    # SMART ARTICLE EXPANSION
+    # ============================================================
+
+    top_metadata = results["metadatas"][0][0]
+
+    top_article = top_metadata["article_number"]
+
+    top_distance = results["distances"][0][0]
+
+    print(
+        f"\nTop relevant Article: {top_article}"
+    )
+
+    print(
+        f"Top result distance: {top_distance:.4f}"
+    )
+
+    # Retrieve the complete article when the
+    # semantic match is sufficiently strong.
+    if top_distance < 0.50:
+
+        print(
+            f"Retrieving complete Article {top_article}..."
+        )
+
+        return get_complete_article(
+            top_article
+        )
+
     return results
 
+# ============================================================
+# BUILD RETRIEVAL CONTEXT
+# ============================================================
+
+def build_context(results):
+
+    documents = results["documents"][0]
+
+    metadatas = results["metadatas"][0]
+
+    context_parts = []
+
+    for document, metadata in zip(
+        documents,
+        metadatas
+    ):
+
+        context_parts.append(
+            f"""
+                Article {metadata['article_number']}
+                Title: {metadata['article_title']}
+                Part: {metadata['part']}
+
+            {document}""".strip()
+        )
+
+    context = "\n\n".join(
+        context_parts
+    )
+
+    return context
 
 # ============================================================
 # DISPLAY RESULTS
@@ -302,20 +376,6 @@ def display_results(results):
         )
 
 
-def detect_article_number(question):
-
-    pattern = r"\barticle\s+(\d+[A-Za-z]?)\b"
-
-    match = re.search(
-        pattern,
-        question,
-        flags=re.IGNORECASE
-    )
-
-    if match:
-        return match.group(1).upper()
-
-    return None
 
 # ============================================================
 # MAIN
@@ -344,7 +404,15 @@ def main():
             top_k=5
         )
 
-        display_results(results)
+        context = build_context(
+            results
+        )
+
+        print("\n" + "=" * 70)
+        print("RETRIEVED CONTEXT")
+        print("=" * 70)
+
+        print(context)
 
 
 if __name__ == "__main__":
