@@ -1,23 +1,35 @@
+from query_chroma import search_constitution, build_context
 from gemini_client import generate_answer
 
 
+# ============================================================
+# TEST QUESTION
+# ============================================================
+
 question = "What does Article 368 say?"
 
-context = """
-Article 368 — Power of Parliament to amend the Constitution
-and procedure therefor.
 
-(1) Parliament may in exercise of its constituent power amend
-the Constitution in accordance with the procedure laid down
-in this article.
+# ============================================================
+# RETRIEVE CONSTITUTIONAL CONTEXT
+# ============================================================
 
-(2) An amendment may be initiated by introduction of a Bill
-in either House of Parliament. The Bill must be passed in
-each House by a majority of the total membership and by a
-majority of not less than two-thirds of members present and
-voting.
-"""
+print("\nRetrieving constitutional context...")
 
+results = search_constitution(
+    query=question,
+    top_k=5
+)
+
+context = build_context(
+    results
+)
+
+
+# ============================================================
+# GENERATE ANSWER USING GEMINI
+# ============================================================
+
+print("\nGenerating answer with Gemini...")
 
 answer = generate_answer(
     question,
@@ -25,7 +37,12 @@ answer = generate_answer(
 )
 
 
+# ============================================================
+# DISPLAY FINAL ANSWER
+# ============================================================
+
 print("\n" + "=" * 70)
-print("GEMINI ANSWER")
+print("SAMVIDHAAN AI ANSWER")
 print("=" * 70)
+
 print(answer)
