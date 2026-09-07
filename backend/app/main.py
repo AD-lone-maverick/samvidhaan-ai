@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from scripts.query_chroma import search_constitution, build_context
 from scripts.gemini_client import generate_answer
@@ -22,7 +22,11 @@ app = FastAPI(
 
 class QuestionRequest(BaseModel):
 
-    question: str
+    question: str = Field(
+        ...,
+        min_length = 1,
+        description = "Question about the Constitution of India"
+    )
 
 
 # ============================================================
@@ -59,8 +63,11 @@ def health():
 # ASK QUESTION
 # ============================================================
 
-@app.post("/ask")
+# ============================================================
+# ASK QUESTION
+# ============================================================
 
+@app.post("/ask")
 def ask_question(request: QuestionRequest):
 
     question = request.question
@@ -79,7 +86,7 @@ def ask_question(request: QuestionRequest):
 
     results = search_constitution(
         query=question,
-        top_k=5
+        top_k=8
     )
 
     context = build_context(
@@ -100,13 +107,37 @@ def ask_question(request: QuestionRequest):
     )
 
     # --------------------------------------------------------
+    # EXTRACT SOURCE INFORMATION
+    # --------------------------------------------------------
+
+    metadatas = results["metadatas"][0]
+
+    sources = []
+
+    seen_articles = set()
+
+    for metadata in metadatas:
+
+        article_number = metadata["article_number"]
+
+        if article_number in seen_articles:
+            continue
+
+        seen_articles.add(article_number)
+
+        sources.append({
+            "article": article_number,
+            "title": metadata["article_title"],
+            "part": metadata["part"],
+            "part_title": metadata.get("part_title"),
+        })
+
+    # --------------------------------------------------------
     # RESPONSE
     # --------------------------------------------------------
 
     return {
-
         "question": question,
-
-        "answer": answer
-
+        "answer": answer,
+        "sources": sources
     }

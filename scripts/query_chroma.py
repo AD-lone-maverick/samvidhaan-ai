@@ -186,7 +186,7 @@ def get_complete_article(article_number):
 
 def search_constitution(
     query,
-    top_k=5
+    top_k=8
 ):
 
     article_number = detect_article_number(
@@ -260,15 +260,15 @@ def search_constitution(
 
     # Retrieve the complete article when the
     # semantic match is sufficiently strong.
-    if top_distance < 0.50:
+    # if top_distance < 0.50:
 
-        print(
-            f"Retrieving complete Article {top_article}..."
-        )
+    #     print(
+    #         f"Retrieving complete Article {top_article}..."
+    #     )
 
-        return get_complete_article(
-            top_article
-        )
+    #     return get_complete_article(
+    #         top_article
+    #     )
 
     return results
 
