@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-
+from fastapi.middleware.cors import CORSMiddleware
 from scripts.query_chroma import search_constitution, build_context
 from scripts.gemini_client import generate_answer
 
@@ -14,6 +14,13 @@ app = FastAPI(
     version="1.0.0"
 
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ============================================================
@@ -25,6 +32,7 @@ class QuestionRequest(BaseModel):
     question: str = Field(
         ...,
         min_length = 1,
+        max_length = 1000,
         description = "Question about the Constitution of India"
     )
 
@@ -63,14 +71,16 @@ def health():
 # ASK QUESTION
 # ============================================================
 
-# ============================================================
-# ASK QUESTION
-# ============================================================
-
 @app.post("/ask")
 def ask_question(request: QuestionRequest):
 
-    question = request.question
+    question = request.question.strip()
+
+    if not question:
+        raise HTTPException(
+            status_code = 400,
+            detail = "Question cannot be empty."
+        )
 
     print(
         f"\nReceived question: {question}"

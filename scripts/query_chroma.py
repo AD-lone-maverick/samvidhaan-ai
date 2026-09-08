@@ -239,6 +239,17 @@ def search_constitution(
             "distances"
         ]
     )
+    if not results["metadatas"] or not results["metadatas"][0]:
+
+        print(
+                "\nNo relevant constitutional context found."
+        )
+
+        return {
+            "documents": [[]],
+            "metadatas": [[]],
+            "distances": [[]]
+        }
 
     # ============================================================
     # SMART ARTICLE EXPANSION
