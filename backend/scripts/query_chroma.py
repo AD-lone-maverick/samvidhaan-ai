@@ -1,14 +1,15 @@
 from pathlib import Path
 import re
 import chromadb
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 
 # ============================================================
 # PATHS AND CONFIGURATION
 # ============================================================
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 CHROMA_PATH = (
     PROJECT_ROOT
@@ -27,7 +28,9 @@ MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
 print("Loading embedding model...")
 
-model = SentenceTransformer(MODEL_NAME)
+model = TextEmbedding(
+    model_name=MODEL_NAME
+)
 
 print("Embedding model loaded.")
 
@@ -223,10 +226,9 @@ def search_constitution(
         "\nCreating query embedding..."
     )
 
-    query_embedding = model.encode(
-        search_query,
-        normalize_embeddings=True
-    ).tolist()
+    query_embedding = list(
+        model.embed([search_query])
+    )[0].tolist()
 
     results = collection.query(
         query_embeddings=[
