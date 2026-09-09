@@ -16,3 +16,4 @@ uvicorn==0.52.3
 sentence-transformers
 chromadb
 torch
+google-genai
